@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Issue2Patch</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg0: #0c1117;
+      --bg1: #141b24;
+      --bg2: #1c2633;
+      --line: #2a3645;
+      --text: #e8eef5;
+      --muted: #8b9bb0;
+      --accent: #3db8a0;
+      --accent-dim: #2a7d6c;
+      --warn: #e0a45a;
+      --danger: #e07070;
+      --ok: #6bcf8e;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "IBM Plex Sans", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(1200px 600px at 10% -10%, #163028 0%, transparent 55%),
+        radial-gradient(900px 500px at 100% 0%, #1a2438 0%, transparent 50%),
+        var(--bg0);
+    }
+    .wrap {
+      max-width: 1080px;
+      margin: 0 auto;
+      padding: 2.25rem 1.25rem 3rem;
+    }
+    header {
+      margin-bottom: 1.75rem;
+      animation: rise .5s ease both;
+    }
+    header .brand {
+      font-size: clamp(1.8rem, 4vw, 2.4rem);
+      font-weight: 600;
+      letter-spacing: -0.03em;
+      margin: 0 0 .35rem;
+    }
+    header .brand span { color: var(--accent); }
+    header p {
+      margin: 0;
+      color: var(--muted);
+      max-width: 42rem;
+      line-height: 1.5;
+    }
+    .layout {
+      display: grid;
+      gap: 1.25rem;
+    }
+    @media (min-width: 900px) {
+      .layout { grid-template-columns: 1.1fr .9fr; align-items: start; }
+    }
+    .panel {
+      background: color-mix(in srgb, var(--bg1) 92%, transparent);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 1.1rem 1.15rem 1.25rem;
+      animation: rise .55s ease both;
+    }
+    .panel:nth-child(2) { animation-delay: .06s; }
+    label {
+      display: block;
+      font-size: .82rem;
+      color: var(--muted);
+      margin: .85rem 0 .35rem;
+    }
+    input, textarea, select {
+      width: 100%;
+      border: 1px solid var(--line);
+      background: var(--bg2);
+      color: var(--text);
+      border-radius: 8px;
+      padding: .65rem .75rem;
+      font: inherit;
+    }
+    textarea {
+      min-height: 180px;
+      resize: vertical;
+      font-family: "IBM Plex Mono", monospace;
+      font-size: .85rem;
+      line-height: 1.45;
+    }
+    .row {
+      display: grid;
+      gap: .75rem;
+      grid-template-columns: 1fr 1fr;
+    }
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: .6rem;
+      margin-top: 1.1rem;
+    }
+    button {
+      border: 0;
+      border-radius: 999px;
+      padding: .7rem 1.15rem;
+      font: inherit;
+      font-weight: 500;
+      cursor: pointer;
+      transition: transform .15s ease, opacity .15s ease;
+    }
+    button:hover { transform: translateY(-1px); }
+    button:disabled { opacity: .55; cursor: not-allowed; transform: none; }
+    .btn-primary { background: var(--accent); color: #06221c; }
+    .btn-ghost {
+      background: transparent;
+      color: var(--text);
+      border: 1px solid var(--line);
+    }
+    .status {
+      display: flex;
+      align-items: center;
+      gap: .55rem;
+      margin-bottom: .85rem;
+      color: var(--muted);
+      font-size: .92rem;
+    }
+    .dot {
+      width: .65rem; height: .65rem; border-radius: 50%;
+      background: var(--muted);
+    }
+    .dot.running { background: var(--warn); box-shadow: 0 0 0 0 rgba(224,164,90,.7); animation: pulse 1.2s infinite; }
+    .dot.done { background: var(--ok); }
+    .dot.error { background: var(--danger); }
+    .todos { list-style: none; padding: 0; margin: 0 0 1rem; }
+    .todos li {
+      display: flex; gap: .5rem; align-items: flex-start;
+      padding: .35rem 0;
+      border-bottom: 1px solid var(--line);
+      font-size: .92rem;
+    }
+    .tag {
+      font-family: "IBM Plex Mono", monospace;
+      font-size: .72rem;
+      padding: .12rem .4rem;
+      border-radius: 4px;
+      background: var(--bg2);
+      color: var(--accent);
+      white-space: nowrap;
+    }
+    .links a {
+      color: var(--accent);
+      margin-right: .9rem;
+      text-decoration: none;
+      background: none;
+      border: 0;
+      padding: 0;
+      font: inherit;
+      cursor: pointer;
+    }
+    .links a:hover { text-decoration: underline; }
+    .viewer {
+      margin-top: .85rem;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      overflow: hidden;
+      background: #0a0f14;
+      display: none;
+    }
+    .viewer.show { display: block; }
+    .viewer-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: .45rem .7rem;
+      border-bottom: 1px solid var(--line);
+      color: var(--muted);
+      font-size: .82rem;
+    }
+    .viewer iframe {
+      width: 100%;
+      height: min(70vh, 640px);
+      border: 0;
+      background: #0f1419;
+    }
+    pre.patch {
+      margin: .75rem 0 0;
+      padding: .85rem;
+      background: #0a0f14;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: auto;
+      max-height: 320px;
+      font-family: "IBM Plex Mono", monospace;
+      font-size: .78rem;
+      line-height: 1.4;
+      white-space: pre-wrap;
+    }
+    .err {
+      color: var(--danger);
+      white-space: pre-wrap;
+      font-family: "IBM Plex Mono", monospace;
+      font-size: .8rem;
+    }
+    @keyframes rise {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: none; }
+    }
+    @keyframes pulse {
+      70% { box-shadow: 0 0 0 10px transparent; }
+      100% { box-shadow: 0 0 0 0 transparent; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1 class="brand">Issue<span>2</span>Patch</h1>
+      <p>填写 Issue → 点击运行 → 查看规划、轨迹回放与 patch。Agent 在本机工作区改代码并跑验证命令。</p>
+    </header>
+
+    <div class="layout">
+      <section class="panel">
+        <div class="actions" style="margin-top:0">
+          <button type="button" class="btn-ghost" id="btnDemo">一键准备 Demo 仓库</button>
+        </div>
+        <label for="workdir">工作区路径（git 仓库）</label>
+        <input id="workdir" />
+
+        <label for="issue">Issue</label>
+        <textarea id="issue"></textarea>
+
+        <div class="row">
+          <div>
+            <label for="verify">验证命令</label>
+            <input id="verify" />
+          </div>
+          <div>
+            <label for="model">模型</label>
+            <input id="model" />
+          </div>
+        </div>
+
+        <div class="row">
+          <div>
+            <label for="sandbox">沙箱</label>
+            <select id="sandbox">
+              <option value="local">local</option>
+              <option value="docker">docker</option>
+            </select>
+          </div>
+          <div>
+            <label for="offline">模式</label>
+            <select id="offline">
+              <option value="false">真实大模型</option>
+              <option value="true">离线脚本（无 Key）</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="actions">
+          <button type="button" class="btn-primary" id="btnRun">运行 Agent</button>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="status">
+          <span class="dot" id="dot"></span>
+          <span id="statusText">待命</span>
+        </div>
+        <ul class="todos" id="todos"></ul>
+        <div class="links" id="links"></div>
+        <div class="viewer" id="viewer">
+          <div class="viewer-bar">
+            <span>轨迹回放（本页内嵌，不跳转）</span>
+            <button type="button" class="btn-ghost" id="btnCloseViewer" style="padding:.25rem .7rem;border-radius:8px">关闭</button>
+          </div>
+          <iframe id="frame" title="trajectory"></iframe>
+        </div>
+        <pre class="patch" id="patch" hidden></pre>
+        <div class="err" id="err"></div>
+      </section>
+    </div>
+  </div>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+    let pollTimer = null;
+
+    async function loadDefaults() {
+      const res = await fetch("/api/defaults");
+      const data = await res.json();
+      $("workdir").value = data.workdir;
+      $("issue").value = data.issue;
+      $("verify").value = data.verify_cmd;
+      $("model").value = data.model;
+    }
+
+    function setStatus(kind, text) {
+      $("dot").className = "dot" + (kind ? " " + kind : "");
+      $("statusText").textContent = text;
+    }
+
+    function renderResult(job) {
+      $("err").textContent = "";
+      $("todos").innerHTML = "";
+      $("links").innerHTML = "";
+      $("patch").hidden = true;
+
+      if (job.status === "running") {
+        setStatus("running", "Agent 运行中…（可在右侧等待，通常 1–3 分钟）");
+        return;
+      }
+      if (job.status === "error") {
+        setStatus("error", "失败");
+        $("err").textContent = job.error || "unknown error";
+        return;
+      }
+      if (job.status === "done" && job.result) {
+        const r = job.result;
+        setStatus("done", "完成 · " + (r.exit_status || ""));
+        (r.final_todos || []).forEach((t) => {
+          const li = document.createElement("li");
+          li.innerHTML = `<span class="tag">${t.status}</span><span>${t.text}</span>`;
+          $("todos").appendChild(li);
+        });
+        const jobId = job.out_dir.split(/[/\\]/).pop();
+        $("links").innerHTML =
+          `<a href="#" id="openTraj">在本页查看轨迹</a>` +
+          `<a href="/runs/${jobId}/trajectory.html" target="_blank" rel="noopener">新标签打开</a>` +
+          `<a href="/runs/${jobId}/fix.patch" target="_blank" rel="noopener">下载 fix.patch</a>`;
+        $("openTraj").onclick = (e) => {
+          e.preventDefault();
+          $("viewer").classList.add("show");
+          $("frame").src = `/runs/${jobId}/trajectory.html`;
+        };
+        if (r.patch_preview) {
+          $("patch").hidden = false;
+          $("patch").textContent = r.patch_preview;
+        }
+      }
+    }
+
+    $("btnCloseViewer").onclick = () => {
+      $("viewer").classList.remove("show");
+      $("frame").src = "about:blank";
+    };
+
+    async function poll(jobId) {
+      const res = await fetch("/api/jobs/" + jobId);
+      const job = await res.json();
+      renderResult(job);
+      if (job.status === "running") {
+        pollTimer = setTimeout(() => poll(jobId), 1500);
+      }
+    }
+
+    $("btnDemo").onclick = async () => {
+      setStatus("running", "正在准备 Demo…");
+      const res = await fetch("/api/demo", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setStatus("error", "Demo 准备失败");
+        $("err").textContent = JSON.stringify(data);
+        return;
+      }
+      $("workdir").value = data.workdir;
+      $("issue").value = data.issue;
+      $("verify").value = data.verify_cmd;
+      if (data.buggy) {
+        setStatus("done", "Demo 已还原为有 bug 版本（calc.add 使用 a * b）。请在编辑器关闭后重新打开 calc.py 查看。");
+      } else {
+        setStatus("error", "Demo 未还原成功，请检查磁盘文件");
+      }
+      if (data.calc_preview) {
+        $("patch").hidden = false;
+        $("patch").textContent = "当前 calc.py：\n" + data.calc_preview;
+      }
+    };
+
+    $("btnRun").onclick = async () => {
+      if (pollTimer) clearTimeout(pollTimer);
+      $("btnRun").disabled = true;
+      setStatus("running", "已提交…");
+      try {
+        const res = await fetch("/api/run", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            workdir: $("workdir").value.trim(),
+            issue: $("issue").value,
+            verify_cmd: $("verify").value.trim(),
+            model: $("model").value.trim() || null,
+            sandbox: $("sandbox").value,
+            offline: $("offline").value === "true",
+            step_limit: 25,
+          }),
+        });
+        if (!res.ok) {
+          const t = await res.text();
+          throw new Error(t);
+        }
+        const data = await res.json();
+        await poll(data.job_id);
+      } catch (e) {
+        setStatus("error", "启动失败");
+        $("err").textContent = String(e);
+      } finally {
+        $("btnRun").disabled = false;
+      }
+    };
+
+    loadDefaults();
+  </script>
+</body>
+</html>

@@ -1,0 +1,71 @@
+agent:
+  system_template: |
+    You are Issue2Patch, a coding agent that fixes software issues inside a sandboxed workspace.
+    You plan first, then execute bash commands to inspect code, edit files, and run tests.
+    Always keep a living TODO list in a fenced ```todos``` block when you update the plan.
+  instance_template: |
+    ## Issue
+    {{task}}
+
+    ## Workspace
+    Working directory: {{workdir}}
+    Verify command (run this to check the fix): {{verify_cmd}}
+
+    ## Required workflow
+    1. At the start of your first response, emit a plan as:
+       ```todos
+       - [~] locate relevant files
+       - [ ] reproduce the bug
+       - [ ] implement the fix
+       - [ ] run verify command and confirm green
+       ```
+       Use [ ] pending, [~] in_progress, [x] completed. Update this block when status changes.
+    2. Explore with bash (`ls`, `rg`/`grep`, `nl`, `sed`, etc.).
+    3. Reproduce the failure with the verify command or a minimal script.
+    4. Edit source files to fix the issue (prefer small, targeted edits).
+    5. Re-run the verify command until it passes.
+    6. Finish with exactly: `echo COMPLETE_TASK_AND_SUBMIT_FINAL_OUTPUT`
+
+    ## Command rules
+    - Every response MUST include reasoning text AND at least one bash tool call.
+    - Each action runs in a fresh subshell (cd / env vars do not persist unless you chain with `&&`).
+    - Prefer staying inside {{workdir}}.
+    - Do not invent unrelated refactors.
+
+    <system_information>
+    {{system}} {{release}} {{version}} {{machine}}
+    </system_information>
+  step_limit: 40
+  cost_limit: 5.0
+  mode: yolo
+environment:
+  cwd: "{{workdir}}"
+  env:
+    PAGER: cat
+    MANPAGER: cat
+    LESS: -R
+    PIP_PROGRESS_BAR: "off"
+    TQDM_DISABLE: "1"
+model:
+  observation_template: |
+    {%- if output.output | length < 10000 -%}
+    {
+      "returncode": {{ output.returncode }},
+      "output": {{ output.output | tojson }}
+      {%- if output.exception_info %}, "exception_info": {{ output.exception_info | tojson }}{% endif %}
+    }
+    {%- else -%}
+    {
+      "returncode": {{ output.returncode }},
+      "output_head": {{ output.output[:5000] | tojson }},
+      "output_tail": {{ output.output[-5000:] | tojson }},
+      "elided_chars": {{ output.output | length - 10000 }},
+      "warning": "Output too long."
+      {%- if output.exception_info %}, "exception_info": {{ output.exception_info | tojson }}{% endif %}
+    }
+    {%- endif -%}
+  format_error_template: |
+    Every response needs at least one bash tool call.
+    To finish: `echo COMPLETE_TASK_AND_SUBMIT_FINAL_OUTPUT` alone.
+  model_kwargs:
+    drop_params: true

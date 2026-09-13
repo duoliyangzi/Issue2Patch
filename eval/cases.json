@@ -1,0 +1,82 @@
+[
+  {
+    "id": "add_mul",
+    "title": "加法误写成乘法",
+    "verify_cmd": "python -m pytest -q",
+    "issue": "# 缺陷：加法结果错误\n\n`add(2, 3)` 返回 6 而非 5。请修复并保证测试通过。\n\n复现：`python -m pytest -q`\n",
+    "files": {
+      "calc.py": "def add(a: int, b: int) -> int:\n    return a * b\n\ndef sub(a: int, b: int) -> int:\n    return a - b\n",
+      "tests/test_calc.py": "from calc import add, sub\n\ndef test_add():\n    assert add(2, 3) == 5\n\ndef test_sub():\n    assert sub(5, 2) == 3\n"
+    }
+  },
+  {
+    "id": "sub_plus",
+    "title": "减法误写成加法",
+    "verify_cmd": "python -m pytest -q",
+    "issue": "# 缺陷：减法结果错误\n\n`sub(5, 2)` 返回 7 而非 3。请修复。\n\n复现：`python -m pytest -q`\n",
+    "files": {
+      "calc.py": "def add(a: int, b: int) -> int:\n    return a + b\n\ndef sub(a: int, b: int) -> int:\n    return a + b\n",
+      "tests/test_calc.py": "from calc import add, sub\n\ndef test_add():\n    assert add(2, 3) == 5\n\ndef test_sub():\n    assert sub(5, 2) == 3\n"
+    }
+  },
+  {
+    "id": "mul_add",
+    "title": "乘法误写成加法",
+    "verify_cmd": "python -m pytest -q",
+    "issue": "# 缺陷：乘法结果错误\n\n`mul(3, 4)` 返回 7 而非 12。请修复。\n\n复现：`python -m pytest -q`\n",
+    "files": {
+      "mathops.py": "def mul(a: int, b: int) -> int:\n    return a + b\n\ndef div_int(a: int, b: int) -> int:\n    return a // b\n",
+      "tests/test_mathops.py": "from mathops import mul, div_int\n\ndef test_mul():\n    assert mul(3, 4) == 12\n\ndef test_div():\n    assert div_int(8, 2) == 4\n"
+    }
+  },
+  {
+    "id": "is_even",
+    "title": "奇偶判断写反",
+    "verify_cmd": "python -m pytest -q",
+    "issue": "# 缺陷：is_even 判断错误\n\n`is_even(2)` 应为 True，当前实现写反了。请修复。\n\n复现：`python -m pytest -q`\n",
+    "files": {
+      "parity.py": "def is_even(n: int) -> bool:\n    return n % 2 == 1\n\ndef is_odd(n: int) -> bool:\n    return not is_even(n)\n",
+      "tests/test_parity.py": "from parity import is_even, is_odd\n\ndef test_even():\n    assert is_even(2) is True\n\ndef test_odd():\n    assert is_odd(3) is True\n"
+    }
+  },
+  {
+    "id": "clamp",
+    "title": "clamp 边界写反",
+    "verify_cmd": "python -m pytest -q",
+    "issue": "# 缺陷：clamp 上下界处理错误\n\n`clamp(x, lo, hi)` 应把 x 限制在 [lo, hi]。当前把小于 lo 的值错误地抬到了 hi。请修复。\n\n复现：`python -m pytest -q`\n",
+    "files": {
+      "util.py": "def clamp(x: int, lo: int, hi: int) -> int:\n    if x < lo:\n        return hi\n    if x > hi:\n        return hi\n    return x\n",
+      "tests/test_util.py": "from util import clamp\n\ndef test_clamp_low():\n    assert clamp(-1, 0, 10) == 0\n\ndef test_clamp_high():\n    assert clamp(99, 0, 10) == 10\n\ndef test_clamp_mid():\n    assert clamp(5, 0, 10) == 5\n"
+    }
+  },
+  {
+    "id": "average",
+    "title": "平均值除数错误",
+    "verify_cmd": "python -m pytest -q",
+    "issue": "# 缺陷：平均值计算错误\n\n`average([2, 4, 6])` 应为 4，当前实现除数少了 1（off-by-one）。请修复。\n\n复现：`python -m pytest -q`\n",
+    "files": {
+      "stats.py": "def average(nums: list[float]) -> float:\n    return sum(nums) / (len(nums) - 1)\n",
+      "tests/test_stats.py": "from stats import average\n\ndef test_average():\n    assert average([2, 4, 6]) == 4\n\ndef test_average_two():\n    assert average([10, 20]) == 15\n"
+    }
+  },
+  {
+    "id": "factorial",
+    "title": "阶乘 off-by-one",
+    "verify_cmd": "python -m pytest -q",
+    "issue": "# 缺陷：factorial 结果偏小\n\n`factorial(5)` 应为 120，当前循环少乘了一次。请修复。\n\n复现：`python -m pytest -q`\n",
+    "files": {
+      "fact.py": "def factorial(n: int) -> int:\n    r = 1\n    for i in range(1, n):\n        r *= i\n    return r\n",
+      "tests/test_fact.py": "from fact import factorial\n\ndef test_fact_5():\n    assert factorial(5) == 120\n\ndef test_fact_1():\n    assert factorial(1) == 1\n"
+    }
+  },
+  {
+    "id": "max_of_two",
+    "title": "max 返回了较小值",
+    "verify_cmd": "python -m pytest -q",
+    "issue": "# 缺陷：max_of_two 返回较小值\n\n`max_of_two(3, 9)` 应返回 9。请修复。\n\n复现：`python -m pytest -q`\n",
+    "files": {
+      "cmp.py": "def max_of_two(a: int, b: int) -> int:\n    return a if a < b else b\n",
+      "tests/test_cmp.py": "from cmp import max_of_two\n\ndef test_max():\n    assert max_of_two(3, 9) == 9\n\ndef test_max_equal():\n    assert max_of_two(4, 4) == 4\n"
+    }
+  }
+]
