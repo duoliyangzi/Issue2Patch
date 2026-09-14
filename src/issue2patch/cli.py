@@ -102,12 +102,19 @@ def run(
         "--offline",
         help="Run without LLM API (scripted fixer for the buggy_calc demo)",
     ),
+    engine: str = typer.Option(
+        None,
+        "--engine",
+        "-e",
+        help="Agent engine: langchain (default) | mini",
+    ),
 ) -> None:
     """Run Issue2Patch on a workspace and export patch + trajectory."""
-    from issue2patch.runner import run_fix
+    from issue2patch.runner import default_engine, run_fix
 
     task = _load_issue(issue, issue_file)
     model_name = model_name or ("issue2patch-offline" if offline else _default_model())
+    engine = (engine or default_engine()).lower()
 
     if sandbox == "docker":
         console.print(f"[cyan]Sandbox:[/] docker ({docker_image})")
@@ -117,7 +124,8 @@ def run(
         raise typer.BadParameter("sandbox must be local or docker")
 
     if offline:
-        console.print("[yellow]Mode:[/] offline (no API key; scripted agent)")
+        console.print("[yellow]Mode:[/] offline (no API key; scripted agent / mini engine)")
+    console.print(f"[cyan]Engine:[/] {engine}")
 
     console.print(f"[cyan]Model:[/] {model_name}")
     console.print(f"[cyan]Workdir:[/] {workdir}")
@@ -136,6 +144,7 @@ def run(
         step_limit=step_limit,
         cost_limit=cost_limit,
         offline=offline,
+        engine=engine,
     )
 
     console.print(f"[green]exit_status:[/] {result.get('exit_status')}")

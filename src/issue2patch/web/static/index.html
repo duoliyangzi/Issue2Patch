@@ -248,16 +248,27 @@
             <label for="sandbox">沙箱</label>
             <select id="sandbox">
               <option value="local">local</option>
-              <option value="docker">docker</option>
+              <option value="docker">docker (仅 mini 引擎)</option>
             </select>
           </div>
+          <div>
+            <label for="engine">引擎</label>
+            <select id="engine">
+              <option value="langchain">LangChain / LangGraph</option>
+              <option value="mini">mini harness</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="row">
           <div>
             <label for="offline">模式</label>
             <select id="offline">
               <option value="false">真实大模型</option>
-              <option value="true">离线脚本（无 Key）</option>
+              <option value="true">离线脚本（强制 mini）</option>
             </select>
           </div>
+          <div></div>
         </div>
 
         <div class="actions">
@@ -296,6 +307,7 @@
       $("issue").value = data.issue;
       $("verify").value = data.verify_cmd;
       $("model").value = data.model;
+      if (data.engine) $("engine").value = data.engine;
     }
 
     function setStatus(kind, text) {
@@ -399,6 +411,7 @@
             model: $("model").value.trim() || null,
             sandbox: $("sandbox").value,
             offline: $("offline").value === "true",
+            engine: $("engine").value,
             step_limit: 25,
           }),
         });

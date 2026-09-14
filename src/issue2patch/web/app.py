@@ -20,7 +20,7 @@ _REPO_ROOT = Path(__file__).resolve().parents[3]
 load_dotenv(_REPO_ROOT / ".env", override=False)
 load_dotenv(Path.cwd() / ".env", override=False)
 
-from issue2patch.runner import default_model_name, materialize_demo, run_fix
+from issue2patch.runner import default_engine, default_model_name, materialize_demo, run_fix
 
 STATIC_DIR = Path(__file__).resolve().parent / "static"
 RUNS_ROOT = _REPO_ROOT / "runs" / "web"
@@ -40,6 +40,7 @@ class RunRequest(BaseModel):
     sandbox: str = "local"
     offline: bool = False
     step_limit: int = 25
+    engine: str = "langchain"
 
 
 class DemoRequest(BaseModel):
@@ -78,6 +79,7 @@ def defaults() -> dict:
         or "# Bug\nDescribe the failing behavior and how to reproduce.\n",
         "verify_cmd": "python -m pytest -q",
         "model": default_model_name(),
+        "engine": default_engine(),
         "repo_root": str(_REPO_ROOT),
     }
 
@@ -129,6 +131,7 @@ def start_run(body: RunRequest) -> dict:
                 step_limit=body.step_limit,
                 cost_limit=0.0,
                 offline=body.offline,
+                engine=body.engine,
             )
             _set_job(job_id, status="done", finished_at=time.time(), result=result)
         except Exception as e:

@@ -2,12 +2,12 @@
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
 from typing import Any
 
 import yaml
 
-from issue2patch.agent import PlanningAgent
 from issue2patch.patch_export import export_git_diff
 from issue2patch.trajectory import write_trajectory_files
 
@@ -20,13 +20,15 @@ def load_config() -> dict:
 
 
 def default_model_name() -> str:
-    import os
-
     return (
         os.getenv("ISSUE2PATCH_MODEL")
         or os.getenv("MSWEA_MODEL_NAME")
-        or "openai/qwen-plus"
+        or "openai/qwen3.8-flash"
     )
+
+
+def default_engine() -> str:
+    return (os.getenv("ISSUE2PATCH_ENGINE") or "langchain").strip().lower()
 
 
 def run_fix(
@@ -41,17 +43,61 @@ def run_fix(
     step_limit: int = 40,
     cost_limit: float = 5.0,
     offline: bool = False,
+    engine: str | None = None,
 ) -> dict[str, Any]:
-    """Run agent and return paths + status for UI/CLI."""
-    from minisweagent.environments.docker import DockerEnvironment
-    from minisweagent.environments.local import LocalEnvironment
-    from minisweagent.models.litellm_model import LitellmModel
+    """Run agent and return paths + status for UI/CLI.
 
+    engine:
+      - langchain (default on feature/langchain-agent): LangGraph create_react_agent
+      - mini: legacy mini-swe-agent harness
+    """
     workdir = workdir.resolve()
     out_dir = out_dir.resolve()
     out_dir.mkdir(parents=True, exist_ok=True)
 
+    engine = (engine or default_engine()).lower()
+    if offline:
+        engine = "mini"
     model_name = model_name or ("issue2patch-offline" if offline else default_model_name())
+
+    if engine == "langchain":
+        if sandbox != "local":
+            raise ValueError("langchain engine currently supports sandbox=local only")
+        from issue2patch.langchain_agent import run_langchain_fix
+
+        lc = run_langchain_fix(
+            workdir=workdir,
+            task=task,
+            verify_cmd=verify_cmd,
+            model_name=model_name,
+            out_dir=out_dir,
+            step_limit=step_limit,
+        )
+        data = lc["data"]
+        json_path, html_path = write_trajectory_files(data, out_dir)
+        patch_path = out_dir / "fix.patch"
+        diff = export_git_diff(workdir, patch_path)
+        return {
+            "exit_status": lc.get("exit_status"),
+            "model": model_name,
+            "engine": "langchain",
+            "workdir": str(workdir),
+            "out_dir": str(out_dir),
+            "trajectory_json": str(json_path),
+            "trajectory_html": str(html_path),
+            "patch_path": str(patch_path),
+            "patch_chars": len(diff),
+            "patch_preview": diff[:4000],
+            "final_todos": lc.get("final_todos") or [],
+            "api_calls": lc.get("api_calls") or {},
+        }
+
+    # ---- legacy mini-swe-agent path ----
+    from issue2patch.agent import PlanningAgent
+    from minisweagent.environments.docker import DockerEnvironment
+    from minisweagent.environments.local import LocalEnvironment
+    from minisweagent.models.litellm_model import LitellmModel
+
     cfg = load_config()
     agent_kwargs = dict(cfg["agent"])
     agent_kwargs["step_limit"] = step_limit
@@ -103,6 +149,7 @@ def run_fix(
     return {
         "exit_status": result.get("exit_status"),
         "model": model_name,
+        "engine": "mini",
         "workdir": str(workdir),
         "out_dir": str(out_dir),
         "trajectory_json": str(json_path),
@@ -125,7 +172,6 @@ def materialize_demo(target: Path) -> Path:
     target = target.resolve()
     target.mkdir(parents=True, exist_ok=True)
 
-    # Overwrite tracked demo files from the pristine buggy template.
     for name in ("calc.py", "issue.md"):
         (target / name).write_bytes((src / name).read_bytes())
     tests_src = src / "tests"
@@ -151,7 +197,6 @@ def materialize_demo(target: Path) -> Path:
             capture_output=True,
         )
     else:
-        # Keep git history, but make the working tree match the buggy template.
         subprocess.run(["git", "add", "-A"], cwd=target, check=False, capture_output=True)
 
     return target
